@@ -1,0 +1,6 @@
+[package]
+name = "json_parse"
+version = "0.1.0"
+authors = ["christhi"]
+
+[dependencies]
