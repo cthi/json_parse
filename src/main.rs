@@ -1,9 +1,9 @@
 #![feature(option_filter)]
 use std::io::{self, Read};
 
+mod alias;
 mod lex;
 mod parse;
-mod alias;
 
 use lex::Lexer;
 use lex::Token;

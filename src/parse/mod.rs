@@ -1,31 +1,31 @@
 use alias::Tokens;
 use lex::Token;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Object {
     Empty,
     Nonempty(Box<Members>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Members {
     Pair(String, Value),
     Pairs(String, Value, Box<Members>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Array {
     Empty,
     Nonempty(Box<Elements>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Elements {
     Single(Value),
     Many(Value, Box<Elements>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Value {
     String(String),
     Number(i32),
@@ -36,7 +36,7 @@ pub enum Value {
     Null,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ParseError {
     ExpectedToken,
 }
@@ -140,4 +140,78 @@ fn parse_elements(mut tokens: &mut Tokens) -> Result<Elements, ParseError> {
         tokens.next();
         parse_elements(&mut tokens).map(|elements| Elements::Many(value, Box::new(elements)))
     })
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use lex::Token;
+
+    #[test]
+    fn test_parse_value_string() {
+        let result = parse_value(&mut vec![Token::String("string".to_string())].iter().peekable());
+        assert_eq!(result, Ok(Value::String("string".to_string())));
+    }
+
+    #[test]
+    fn test_parse_value_number() {
+        let result = parse_value(&mut vec![Token::Integer(5)].iter().peekable());
+        assert_eq!(result, Ok(Value::Number(5)));
+    }
+
+    #[test]
+    fn test_parse_value_true() {
+        let result = parse_value(&mut vec![Token::True].iter().peekable());
+        assert_eq!(result, Ok(Value::True));
+    }
+
+    #[test]
+    fn test_parse_value_false() {
+        let result = parse_value(&mut vec![Token::False].iter().peekable());
+        assert_eq!(result, Ok(Value::False));
+    }
+
+    #[test]
+    fn test_parse_value_null() {
+        let result = parse_value(&mut vec![Token::Null].iter().peekable());
+        assert_eq!(result, Ok(Value::Null));
+    }
+
+    #[test]
+    fn test_parse_value_no_token() {
+        let result = parse_value(&mut vec![].iter().peekable());
+        assert_eq!(result, Err(ParseError::ExpectedToken));
+    }
+
+    #[test]
+    fn test_parse_value_invalid_token() {
+        let result = parse_value(&mut vec![Token::ObjectStart].iter().peekable());
+        assert_eq!(result, Err(ParseError::ExpectedToken));
+    }
+
+    #[test]
+    fn test_parse_object_empty() {
+        let result =
+            parse_object(&mut vec![Token::ObjectStart, Token::ObjectEnd].iter().peekable());
+        assert_eq!(result, Ok(Object::Empty));
+    }
+
+    #[test]
+    fn test_parse_object_basic() {
+        let result = parse_object(&mut vec![
+            Token::ObjectStart,
+            Token::String("key".to_string()),
+            Token::Colon,
+            Token::String("value".to_string()),
+            Token::ObjectEnd,
+        ].iter()
+            .peekable());
+        assert_eq!(
+            result,
+            Ok(Object::Nonempty(Box::new(Members::Pair(
+                "key".to_string(),
+                Value::String("value".to_string())
+            ))))
+        );
+    }
 }
