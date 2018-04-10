@@ -28,12 +28,18 @@ pub enum Elements {
 #[derive(Debug, PartialEq)]
 pub enum Value {
     String(String),
-    Number(i32),
+    Number(JSONNumber),
     Object(Object),
     Array(Array),
     True,
     False,
     Null,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum JSONNumber {
+    Integer(i32),
+    Float(f64),
 }
 
 #[derive(Debug, PartialEq)]
@@ -89,7 +95,11 @@ fn parse_value(mut tokens: &mut Tokens) -> Result<Value, ParseError> {
             }
             &Token::Integer(number) => {
                 tokens.next();
-                Ok(Value::Number(number))
+                Ok(Value::Number(JSONNumber::Integer(number)))
+            }
+            &Token::Float(number) => {
+                tokens.next();
+                Ok(Value::Number(JSONNumber::Float(number)))
             }
             &Token::True => {
                 tokens.next();
@@ -156,7 +166,7 @@ mod test {
     #[test]
     fn test_parse_value_number() {
         let result = parse_value(&mut vec![Token::Integer(5)].iter().peekable());
-        assert_eq!(result, Ok(Value::Number(5)));
+        assert_eq!(result, Ok(Value::Number(JSONNumber::Integer(5))));
     }
 
     #[test]
@@ -197,7 +207,7 @@ mod test {
     }
 
     #[test]
-    fn test_parse_object_basic() {
+    fn test_parse_object_member_string() {
         let result = parse_object(&mut vec![
             Token::ObjectStart,
             Token::String("key".to_string()),
@@ -211,6 +221,197 @@ mod test {
             Ok(Object::Nonempty(Box::new(Members::Pair(
                 "key".to_string(),
                 Value::String("value".to_string())
+            ))))
+        );
+    }
+
+    #[test]
+    fn test_parse_object_members() {
+        let result = parse_object(&mut vec![
+            Token::ObjectStart,
+            Token::String("key1".to_string()),
+            Token::Colon,
+            Token::String("value1".to_string()),
+            Token::Comma,
+            Token::String("key2".to_string()),
+            Token::Colon,
+            Token::String("value2".to_string()),
+            Token::ObjectEnd,
+        ].iter()
+            .peekable());
+        assert_eq!(
+            result,
+            Ok(Object::Nonempty(Box::new(Members::Pairs(
+                "key1".to_string(),
+                Value::String("value1".to_string()),
+                Box::new(Members::Pair(
+                    "key2".to_string(),
+                    Value::String("value2".to_string())
+                ))
+            ))))
+        );
+    }
+
+    #[test]
+    fn test_parse_object_member_int() {
+        let result = parse_object(&mut vec![
+            Token::ObjectStart,
+            Token::String("key".to_string()),
+            Token::Colon,
+            Token::Integer(5),
+            Token::ObjectEnd,
+        ].iter()
+            .peekable());
+        assert_eq!(
+            result,
+            Ok(Object::Nonempty(Box::new(Members::Pair(
+                "key".to_string(),
+                Value::Number(JSONNumber::Integer(5))
+            ))))
+        );
+    }
+
+    #[test]
+    fn test_parse_object_member_float() {
+        let result = parse_object(&mut vec![
+            Token::ObjectStart,
+            Token::String("key".to_string()),
+            Token::Colon,
+            Token::Float(0.5),
+            Token::ObjectEnd,
+        ].iter()
+            .peekable());
+        assert_eq!(
+            result,
+            Ok(Object::Nonempty(Box::new(Members::Pair(
+                "key".to_string(),
+                Value::Number(JSONNumber::Float(0.5))
+            ))))
+        );
+    }
+
+    #[test]
+    fn test_parse_object_member_true() {
+        let result = parse_object(&mut vec![
+            Token::ObjectStart,
+            Token::String("key".to_string()),
+            Token::Colon,
+            Token::True,
+            Token::ObjectEnd,
+        ].iter()
+            .peekable());
+        assert_eq!(
+            result,
+            Ok(Object::Nonempty(Box::new(Members::Pair(
+                "key".to_string(),
+                Value::True
+            ))))
+        );
+    }
+
+    #[test]
+    fn test_parse_object_member_false() {
+        let result = parse_object(&mut vec![
+            Token::ObjectStart,
+            Token::String("key".to_string()),
+            Token::Colon,
+            Token::False,
+            Token::ObjectEnd,
+        ].iter()
+            .peekable());
+        assert_eq!(
+            result,
+            Ok(Object::Nonempty(Box::new(Members::Pair(
+                "key".to_string(),
+                Value::False
+            ))))
+        );
+    }
+
+    #[test]
+    fn test_parse_object_member_null() {
+        let result = parse_object(&mut vec![
+            Token::ObjectStart,
+            Token::String("key".to_string()),
+            Token::Colon,
+            Token::Null,
+            Token::ObjectEnd,
+        ].iter()
+            .peekable());
+        assert_eq!(
+            result,
+            Ok(Object::Nonempty(Box::new(Members::Pair(
+                "key".to_string(),
+                Value::Null
+            ))))
+        );
+    }
+
+    #[test]
+    fn test_parse_object_member_array_empty() {
+        let result = parse_object(&mut vec![
+            Token::ObjectStart,
+            Token::String("key".to_string()),
+            Token::Colon,
+            Token::ArrayStart,
+            Token::ArrayEnd,
+            Token::ObjectEnd,
+        ].iter()
+            .peekable());
+        assert_eq!(
+            result,
+            Ok(Object::Nonempty(Box::new(Members::Pair(
+                "key".to_string(),
+                Value::Array(Array::Empty)
+            ))))
+        );
+    }
+
+    #[test]
+    fn test_parse_object_member_array_element() {
+        let result = parse_object(&mut vec![
+            Token::ObjectStart,
+            Token::String("key".to_string()),
+            Token::Colon,
+            Token::ArrayStart,
+            Token::Integer(5),
+            Token::ArrayEnd,
+            Token::ObjectEnd,
+        ].iter()
+            .peekable());
+        assert_eq!(
+            result,
+            Ok(Object::Nonempty(Box::new(Members::Pair(
+                "key".to_string(),
+                Value::Array(Array::Nonempty(Box::new(Elements::Single(Value::Number(
+                    JSONNumber::Integer(5)
+                )))))
+            ))))
+        );
+    }
+
+    #[test]
+    fn test_parse_object_member_array_elements() {
+        let result = parse_object(&mut vec![
+            Token::ObjectStart,
+            Token::String("key".to_string()),
+            Token::Colon,
+            Token::ArrayStart,
+            Token::Integer(5),
+            Token::Comma,
+            Token::String("elements".to_string()),
+            Token::ArrayEnd,
+            Token::ObjectEnd,
+        ].iter()
+            .peekable());
+        assert_eq!(
+            result,
+            Ok(Object::Nonempty(Box::new(Members::Pair(
+                "key".to_string(),
+                Value::Array(Array::Nonempty(Box::new(Elements::Many(
+                    Value::Number(JSONNumber::Integer(5)),
+                    Box::new(Elements::Single(Value::String("elements".to_string())))
+                ))))
             ))))
         );
     }
