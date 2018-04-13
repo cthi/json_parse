@@ -48,11 +48,11 @@ pub enum ParseError {
 }
 
 pub fn parse_object(mut tokens: &mut Tokens) -> Result<Object, ParseError> {
-    if let None = tokens.next().filter(|t| **t == Token::ObjectStart) {
+    if tokens.next().filter(|t| **t == Token::ObjectStart).is_none() {
         return Err(ParseError::ExpectedToken);
     }
 
-    if let Some(_) = tokens.peek().filter(|t| ***t == Token::ObjectEnd) {
+    if tokens.peek().filter(|t| ***t == Token::ObjectEnd).is_some() {
         tokens.next();
         return Ok(Object::Empty);
     }
@@ -69,7 +69,7 @@ pub fn parse_object(mut tokens: &mut Tokens) -> Result<Object, ParseError> {
 
 fn parse_members(mut tokens: &mut Tokens) -> Result<Members, ParseError> {
     parse_pair(&mut tokens).and_then(|(key, value)| {
-        if let None = tokens.peek().filter(|t| ***t == Token::Comma) {
+        if tokens.peek().filter(|t| ***t == Token::Comma).is_none() {
             return Ok(Members::Pair(key, value));
         }
         tokens.next();
@@ -88,33 +88,33 @@ fn parse_pair(mut tokens: &mut Tokens) -> Result<(String, Value), ParseError> {
 
 fn parse_value(mut tokens: &mut Tokens) -> Result<Value, ParseError> {
     if let Some(t) = tokens.peek().map(|t| *t) {
-        match t {
-            &Token::String(ref string) => {
+        match *t {
+            Token::String(ref string) => {
                 tokens.next();
                 Ok(Value::String(string.clone()))
             }
-            &Token::Integer(number) => {
+            Token::Integer(number) => {
                 tokens.next();
                 Ok(Value::Number(JSONNumber::Integer(number)))
             }
-            &Token::Float(number) => {
+            Token::Float(number) => {
                 tokens.next();
                 Ok(Value::Number(JSONNumber::Float(number)))
             }
-            &Token::True => {
+            Token::True => {
                 tokens.next();
                 Ok(Value::True)
             }
-            &Token::False => {
+            Token::False => {
                 tokens.next();
                 Ok(Value::False)
             }
-            &Token::Null => {
+            Token::Null => {
                 tokens.next();
                 Ok(Value::Null)
             }
-            &Token::ObjectStart => parse_object(&mut tokens).map(|obj| Value::Object(obj)),
-            &Token::ArrayStart => parse_array(&mut tokens).map(|arr| Value::Array(arr)),
+            Token::ObjectStart => parse_object(&mut tokens).map(Value::Object),
+            Token::ArrayStart => parse_array(&mut tokens).map(Value::Array),
             _ => Err(ParseError::ExpectedToken),
         }
     } else {
@@ -123,11 +123,11 @@ fn parse_value(mut tokens: &mut Tokens) -> Result<Value, ParseError> {
 }
 
 fn parse_array(mut tokens: &mut Tokens) -> Result<Array, ParseError> {
-    if let None = tokens.next().filter(|t| **t == Token::ArrayStart) {
+    if tokens.next().filter(|t| **t == Token::ArrayStart).is_none() {
         return Err(ParseError::ExpectedToken);
     }
 
-    if let Some(_) = tokens.peek().filter(|t| ***t == Token::ArrayEnd) {
+    if tokens.peek().filter(|t| ***t == Token::ArrayEnd).is_some() {
         tokens.next();
         return Ok(Array::Empty);
     }
@@ -144,7 +144,7 @@ fn parse_array(mut tokens: &mut Tokens) -> Result<Array, ParseError> {
 
 fn parse_elements(mut tokens: &mut Tokens) -> Result<Elements, ParseError> {
     parse_value(&mut tokens).and_then(|value| {
-        if let None = tokens.peek().filter(|t| ***t == Token::Comma) {
+        if tokens.peek().filter(|t| ***t == Token::Comma).is_none() {
             return Ok(Elements::Single(value));
         }
         tokens.next();

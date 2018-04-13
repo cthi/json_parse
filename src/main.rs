@@ -11,9 +11,9 @@ use parse::parse_object;
 
 fn main() {
     let mut buffer = String::new();
-    if let Ok(_) = io::stdin().read_to_string(&mut buffer) {
+    if io::stdin().read_to_string(&mut buffer).is_ok() {
         let mut tokens = buffer.lex();
-        tokens.retain(|&ref token| token != &Token::Whitespace);
+        tokens.retain(|token| token != &Token::Whitespace);
 
         println!("{:?}", parse_object(&mut tokens.iter().peekable()));
     } else {

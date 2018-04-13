@@ -26,44 +26,41 @@ impl Lexer for String {
         let mut chars = self.chars().peekable();
         let mut tokens: Vec<Token> = vec![];
 
-        loop {
-            match chars.peek() {
-                Some(&ch) => match ch {
-                    '{' => {
-                        chars.next();
-                        tokens.push(Token::ObjectStart);
-                    }
-                    '}' => {
-                        chars.next();
-                        tokens.push(Token::ObjectEnd);
-                    }
-                    '[' => {
-                        chars.next();
-                        tokens.push(Token::ArrayStart);
-                    }
-                    ']' => {
-                        chars.next();
-                        tokens.push(Token::ArrayEnd);
-                    }
-                    ',' => {
-                        chars.next();
-                        tokens.push(Token::Comma);
-                    }
-                    ':' => {
-                        chars.next();
-                        tokens.push(Token::Colon);
-                    }
-                    '"' => lex_string(&mut chars, &mut tokens),
-                    't' => lex_true(&mut chars, &mut tokens),
-                    'f' => lex_false(&mut chars, &mut tokens),
-                    'n' => lex_null(&mut chars, &mut tokens),
-                    '\n' | '\t' | '\r' | ' ' => {
-                        chars.next();
-                        tokens.push(Token::Whitespace);
-                    }
-                    _ => panic!("Invalid character"),
-                },
-                None => break,
+        while let Some(&ch) = chars.peek() {
+            match ch {
+                '{' => {
+                    chars.next();
+                    tokens.push(Token::ObjectStart);
+                }
+                '}' => {
+                    chars.next();
+                    tokens.push(Token::ObjectEnd);
+                }
+                '[' => {
+                    chars.next();
+                    tokens.push(Token::ArrayStart);
+                }
+                ']' => {
+                    chars.next();
+                    tokens.push(Token::ArrayEnd);
+                }
+                ',' => {
+                    chars.next();
+                    tokens.push(Token::Comma);
+                }
+                ':' => {
+                    chars.next();
+                    tokens.push(Token::Colon);
+                }
+                '"' => lex_string(&mut chars, &mut tokens),
+                't' => lex_true(&mut chars, &mut tokens),
+                'f' => lex_false(&mut chars, &mut tokens),
+                'n' => lex_null(&mut chars, &mut tokens),
+                '\n' | '\t' | '\r' | ' ' => {
+                    chars.next();
+                    tokens.push(Token::Whitespace);
+                }
+                _ => panic!("Invalid character"),
             }
         }
         tokens
