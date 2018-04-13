@@ -415,4 +415,24 @@ mod test {
             ))))
         );
     }
+
+    #[test]
+    fn test_parse_object_member_object() {
+        let result = parse_object(&mut vec![
+            Token::ObjectStart,
+            Token::String("key".to_string()),
+            Token::Colon,
+            Token::ObjectStart,
+            Token::ObjectEnd,
+            Token::ObjectEnd,
+        ].iter()
+            .peekable());
+        assert_eq!(
+            result,
+            Ok(Object::Nonempty(Box::new(Members::Pair(
+                "key".to_string(),
+                Value::Object(Object::Empty)
+            ))))
+        );
+    }
 }
