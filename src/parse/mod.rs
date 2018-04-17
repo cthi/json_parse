@@ -48,7 +48,11 @@ pub enum ParseError {
 }
 
 pub fn parse_object(mut tokens: &mut Tokens) -> Result<Object, ParseError> {
-    if tokens.next().filter(|t| **t == Token::ObjectStart).is_none() {
+    if tokens
+        .next()
+        .filter(|t| **t == Token::ObjectStart)
+        .is_none()
+    {
         return Err(ParseError::ExpectedToken);
     }
 
