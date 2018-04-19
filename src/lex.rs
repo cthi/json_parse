@@ -1,4 +1,4 @@
-use alias::Characters;
+use std;
 
 #[derive(Debug, PartialEq)]
 pub enum Token {
@@ -15,81 +15,132 @@ pub enum Token {
     Integer(i32),
     Float(f64),
     String(String),
+    NoMoreTokens,
 }
 
-pub trait Lexer {
-    fn lex(&self) -> Vec<Token>;
+#[derive(Debug)]
+pub enum LexError {
+    InvalidToken,
 }
 
-impl Lexer for String {
-    fn lex(&self) -> Vec<Token> {
-        let mut chars = self.chars().peekable();
+#[derive(Debug)]
+pub struct Lexer<'a> {
+    pub chars: std::iter::Peekable<std::str::Chars<'a>>,
+}
+
+impl<'a> Lexer<'a> {
+    pub fn lex(&mut self) -> Result<Vec<Token>, LexError> {
         let mut tokens: Vec<Token> = vec![];
 
-        while let Some(&ch) = chars.peek() {
-            match ch {
-                '{' => {
-                    chars.next();
-                    tokens.push(Token::ObjectStart);
-                }
-                '}' => {
-                    chars.next();
-                    tokens.push(Token::ObjectEnd);
-                }
-                '[' => {
-                    chars.next();
-                    tokens.push(Token::ArrayStart);
-                }
-                ']' => {
-                    chars.next();
-                    tokens.push(Token::ArrayEnd);
-                }
-                ',' => {
-                    chars.next();
-                    tokens.push(Token::Comma);
-                }
-                ':' => {
-                    chars.next();
-                    tokens.push(Token::Colon);
-                }
-                '"' => lex_string(&mut chars, &mut tokens),
-                't' => lex_true(&mut chars, &mut tokens),
-                'f' => lex_false(&mut chars, &mut tokens),
-                'n' => lex_null(&mut chars, &mut tokens),
-                '\n' | '\t' | '\r' | ' ' => {
-                    chars.next();
-                    tokens.push(Token::Whitespace);
-                }
-                _ => panic!("Invalid character"),
+        loop {
+            match next(&mut self.chars) {
+                Ok(Token::NoMoreTokens) => break,
+                Ok(token) => tokens.push(token),
+                Err(err) => return Err(err),
             }
         }
-        tokens
+
+        Ok(tokens)
     }
 }
 
-fn lex_string(chars: &mut Characters, tokens: &mut Vec<Token>) {
+fn next(mut chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<Token, LexError> {
+    if let Some(&ch) = chars.peek() {
+        match ch {
+            '{' => {
+                chars.next();
+                Ok(Token::ObjectStart)
+            }
+            '}' => {
+                chars.next();
+                Ok(Token::ObjectEnd)
+            }
+            '[' => {
+                chars.next();
+                Ok(Token::ArrayStart)
+            }
+            ']' => {
+                chars.next();
+                Ok(Token::ArrayEnd)
+            }
+            ',' => {
+                chars.next();
+                Ok(Token::Comma)
+            }
+            ':' => {
+                chars.next();
+                Ok(Token::Colon)
+            }
+            '0' => {
+                chars.next();
+                Ok(Token::Integer(0))
+            }
+            '"' => lex_string(&mut chars),
+            't' => lex_true(&mut chars),
+            'f' => lex_false(&mut chars),
+            'n' => lex_null(&mut chars),
+            '\n' | '\t' | '\r' | ' ' => {
+                chars.next();
+                Ok(Token::Whitespace)
+            }
+            _ => Err(LexError::InvalidToken),
+        }
+    } else {
+        Ok(Token::NoMoreTokens)
+    }
+}
+
+fn lex_string(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<Token, LexError> {
     let mut string = String::new();
 
     if chars.next() != Some('"') {
-        panic!("Invalid character");
+        return Err(LexError::InvalidToken);
     }
 
     loop {
-        match chars.next() {
-            Some(ch) => match ch {
-                '"' => break,
-                /*          '\' => tokens.push_str(lex_escapes(&mut chars)) */
-                c => string.push(c),
-            },
-            None => panic!("Invalid Character"),
+        if let Some(ch) = chars.next() {
+            if ch == '"' {
+                break;
+            } else {
+                string.push(ch);
+            }
+        } else {
+            return Err(LexError::InvalidToken);
         }
     }
 
-    tokens.push(Token::String(string))
+    Ok(Token::String(string))
+}
+
+fn lex_true(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<Token, LexError> {
+    match (chars.next(), chars.next(), chars.next(), chars.next()) {
+        (Some('t'), Some('r'), Some('u'), Some('e')) => Ok(Token::True),
+        _ => Err(LexError::InvalidToken),
+    }
+}
+
+fn lex_false(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<Token, LexError> {
+    match (
+        chars.next(),
+        chars.next(),
+        chars.next(),
+        chars.next(),
+        chars.next(),
+    ) {
+        (Some('f'), Some('a'), Some('l'), Some('s'), Some('e')) => Ok(Token::False),
+        _ => Err(LexError::InvalidToken),
+    }
+}
+
+fn lex_null(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<Token, LexError> {
+    match (chars.next(), chars.next(), chars.next(), chars.next()) {
+        (Some('n'), Some('u'), Some('l'), Some('l')) => Ok(Token::Null),
+        _ => Err(LexError::InvalidToken),
+    }
 }
 
 /*
-fn lex_escapes(chars: &mut Characters) {
+fn lex_escapes(chars: &mut std::iter::Peekable<std::str::Chars>) {
   match chars.next() {
     Some(&ch) => match ch {
       '"' => String::new("\""),
@@ -100,14 +151,14 @@ fn lex_escapes(chars: &mut Characters) {
       'n' => String::new("\n"),
       'r' => String::new("\r"),
       't' => String::new("\t"),
-      'u' => lex_hex_digits(chars: &mut Characters),
+      'u' => lex_hex_digits(chars: &mut std::iter::Peekable<std::str::Chars>),
       _ => panic!("Invalid Character"),
     },
     _ => panic!("Invalid Character")
   }
 }
 
-fn lex_hex_digits(chars: &mut Characters) {
+fn lex_hex_digits(chars: &mut std::iter::Peekable<std::str::Chars>) {
   let digits = String::new();
 
   match chars.next() {
@@ -119,29 +170,3 @@ fn lex_hex_digits(chars: &mut Characters) {
   digits
 }
 */
-fn lex_true(chars: &mut Characters, tokens: &mut Vec<Token>) {
-    match (chars.next(), chars.next(), chars.next(), chars.next()) {
-        (Some('t'), Some('r'), Some('u'), Some('e')) => tokens.push(Token::True),
-        _ => panic!("Invalid character"),
-    }
-}
-
-fn lex_false(chars: &mut Characters, tokens: &mut Vec<Token>) {
-    match (
-        chars.next(),
-        chars.next(),
-        chars.next(),
-        chars.next(),
-        chars.next(),
-    ) {
-        (Some('f'), Some('a'), Some('l'), Some('s'), Some('e')) => tokens.push(Token::False),
-        _ => panic!("Invalid character"),
-    }
-}
-
-fn lex_null(chars: &mut Characters, tokens: &mut Vec<Token>) {
-    match (chars.next(), chars.next(), chars.next(), chars.next()) {
-        (Some('n'), Some('u'), Some('l'), Some('l')) => tokens.push(Token::Null),
-        _ => panic!("Invalid character"),
-    }
-}
