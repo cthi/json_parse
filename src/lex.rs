@@ -71,10 +71,8 @@ fn next(mut chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<Token, L
                 chars.next();
                 Ok(Token::Colon)
             }
-            '0' => {
-                chars.next();
-                Ok(Token::Integer(0))
-            }
+            '0' => { chars.next(); Ok(Token::Integer(0)) }
+            '1' ... '9' => lex_number(&mut chars),
             '"' => lex_string(&mut chars),
             't' => lex_true(&mut chars),
             'f' => lex_false(&mut chars),
@@ -139,6 +137,17 @@ fn lex_null(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<Token, L
     }
 }
 
+fn lex_number(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<Token, LexError> {
+    if let Ok(number) = chars
+        .take_while(|c| c.is_digit(10))
+        .collect::<String>()
+        .parse::<i32>()
+    {
+        Ok(Token::Integer(number))
+    } else {
+        Err(LexError::InvalidToken)
+    }
+}
 /*
 fn lex_escapes(chars: &mut std::iter::Peekable<std::str::Chars>) {
   match chars.next() {
@@ -158,15 +167,4 @@ fn lex_escapes(chars: &mut std::iter::Peekable<std::str::Chars>) {
   }
 }
 
-fn lex_hex_digits(chars: &mut std::iter::Peekable<std::str::Chars>) {
-  let digits = String::new();
-
-  match chars.next() {
-    Some(&ch) => match ch {
-      '0' .. '9' => {  
-    }
-  }
-
-  digits
-}
 */
