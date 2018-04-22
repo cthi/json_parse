@@ -71,8 +71,11 @@ fn next(mut chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<Token, L
                 chars.next();
                 Ok(Token::Colon)
             }
-            '0' => { chars.next(); Ok(Token::Integer(0)) }
-            '1' ... '9' => lex_number(&mut chars),
+            '0' => {
+                chars.next();
+                Ok(Token::Integer(0))
+            }
+            '1'...'9' => lex_number(&mut chars),
             '"' => lex_string(&mut chars),
             't' => lex_true(&mut chars),
             'f' => lex_false(&mut chars),
