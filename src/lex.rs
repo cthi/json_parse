@@ -141,15 +141,39 @@ fn lex_null(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<Token, L
 }
 
 fn lex_number(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<Token, LexError> {
-    if let Ok(number) = chars
-        .take_while(|c| c.is_digit(10))
-        .collect::<String>()
-        .parse::<i32>()
-    {
-        Ok(Token::Integer(number))
+    if let Ok(Token::Integer(integer)) = lex_digits(chars) {
+        if let Some('.') = chars.peek() {
+            chars.next();
+            if let Ok(Token::Integer(decimal)) = lex_digits(chars) {
+                if let Ok(f) = [integer.to_string(), decimal.to_string()]
+                    .join(".")
+                    .parse::<f64>()
+                {
+                    Ok(Token::Float(f))
+                } else {
+                    Err(LexError::InvalidToken)
+                }
+            } else {
+                Err(LexError::InvalidToken)
+            }
+        } else {
+            Ok(Token::Integer(integer))
+        }
     } else {
         Err(LexError::InvalidToken)
     }
+}
+
+fn lex_digits(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<Token, LexError> {
+    if chars.peek().map(|c| c.is_digit(10)).is_none() {
+        return Err(LexError::InvalidToken);
+    }
+    let mut digits = 0;
+    while let Some(Some(digit)) = chars.peek().map(|c| c.to_digit(11)) {
+        digits = digits * 10 + digit;
+        chars.next();
+    }
+    Ok(Token::Integer(digits as i32))
 }
 /*
 fn lex_escapes(chars: &mut std::iter::Peekable<std::str::Chars>) {
