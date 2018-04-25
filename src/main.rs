@@ -1,7 +1,6 @@
 #![feature(option_filter)]
 use std::io::{self, Read};
 
-mod alias;
 mod lex;
 mod parse;
 

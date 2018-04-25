@@ -1,5 +1,8 @@
-use alias::Tokens;
 use lex::Token;
+use std::iter::Peekable;
+use std::slice::Iter;
+
+type Tokens<'a> = Peekable<Iter<'a, Token>>;
 
 #[derive(Debug, PartialEq)]
 pub enum Object {
