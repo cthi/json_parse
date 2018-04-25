@@ -176,23 +176,3 @@ fn lex_digits(chars: &mut Peekable<Chars>) -> Result<Token, LexError> {
     }
     Ok(Token::Integer(digits as i32))
 }
-/*
-fn lex_escapes(chars: &mut Peekable<Chars>) {
-  match chars.next() {
-    Some(&ch) => match ch {
-      '"' => String::new("\""),
-      '\' => String::new("\\"),
-      '/' => String::new("\/"),
-      'b' => String::new("\b"),
-      'f' => String::new("\f"),
-      'n' => String::new("\n"),
-      'r' => String::new("\r"),
-      't' => String::new("\t"),
-      'u' => lex_hex_digits(chars: &mut Peekable<Chars>),
-      _ => panic!("Invalid Character"),
-    },
-    _ => panic!("Invalid Character")
-  }
-}
-
-*/
