@@ -1,4 +1,5 @@
-use std;
+use std::iter::Peekable;
+use std::str::Chars;
 
 #[derive(Debug, PartialEq)]
 pub enum Token {
@@ -25,7 +26,7 @@ pub enum LexError {
 
 #[derive(Debug)]
 pub struct Lexer<'a> {
-    pub chars: std::iter::Peekable<std::str::Chars<'a>>,
+    pub chars: Peekable<Chars<'a>>,
 }
 
 impl<'a> Lexer<'a> {
@@ -44,7 +45,7 @@ impl<'a> Lexer<'a> {
     }
 }
 
-fn next(mut chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<Token, LexError> {
+fn next(mut chars: &mut Peekable<Chars>) -> Result<Token, LexError> {
     if let Some(&ch) = chars.peek() {
         match ch {
             '{' => {
@@ -91,7 +92,7 @@ fn next(mut chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<Token, L
     }
 }
 
-fn lex_string(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<Token, LexError> {
+fn lex_string(chars: &mut Peekable<Chars>) -> Result<Token, LexError> {
     let mut string = String::new();
 
     if chars.next() != Some('"') {
@@ -113,14 +114,14 @@ fn lex_string(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<Token,
     Ok(Token::String(string))
 }
 
-fn lex_true(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<Token, LexError> {
+fn lex_true(chars: &mut Peekable<Chars>) -> Result<Token, LexError> {
     match (chars.next(), chars.next(), chars.next(), chars.next()) {
         (Some('t'), Some('r'), Some('u'), Some('e')) => Ok(Token::True),
         _ => Err(LexError::InvalidToken),
     }
 }
 
-fn lex_false(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<Token, LexError> {
+fn lex_false(chars: &mut Peekable<Chars>) -> Result<Token, LexError> {
     match (
         chars.next(),
         chars.next(),
@@ -133,14 +134,14 @@ fn lex_false(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<Token, 
     }
 }
 
-fn lex_null(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<Token, LexError> {
+fn lex_null(chars: &mut Peekable<Chars>) -> Result<Token, LexError> {
     match (chars.next(), chars.next(), chars.next(), chars.next()) {
         (Some('n'), Some('u'), Some('l'), Some('l')) => Ok(Token::Null),
         _ => Err(LexError::InvalidToken),
     }
 }
 
-fn lex_number(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<Token, LexError> {
+fn lex_number(chars: &mut Peekable<Chars>) -> Result<Token, LexError> {
     if let Ok(Token::Integer(integer)) = lex_digits(chars) {
         if let Some('.') = chars.peek() {
             chars.next();
@@ -164,7 +165,7 @@ fn lex_number(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<Token,
     }
 }
 
-fn lex_digits(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<Token, LexError> {
+fn lex_digits(chars: &mut Peekable<Chars>) -> Result<Token, LexError> {
     if chars.peek().map(|c| c.is_digit(10)).is_none() {
         return Err(LexError::InvalidToken);
     }
@@ -176,7 +177,7 @@ fn lex_digits(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<Token,
     Ok(Token::Integer(digits as i32))
 }
 /*
-fn lex_escapes(chars: &mut std::iter::Peekable<std::str::Chars>) {
+fn lex_escapes(chars: &mut Peekable<Chars>) {
   match chars.next() {
     Some(&ch) => match ch {
       '"' => String::new("\""),
@@ -187,7 +188,7 @@ fn lex_escapes(chars: &mut std::iter::Peekable<std::str::Chars>) {
       'n' => String::new("\n"),
       'r' => String::new("\r"),
       't' => String::new("\t"),
-      'u' => lex_hex_digits(chars: &mut std::iter::Peekable<std::str::Chars>),
+      'u' => lex_hex_digits(chars: &mut Peekable<Chars>),
       _ => panic!("Invalid Character"),
     },
     _ => panic!("Invalid Character")
